@@ -1,0 +1,8 @@
+INFO login user=kim
+ERROR db timeout
+INFO login user=lee
+ERROR db timeout
+INFO logout user=kim
+WARN slow query 1200ms
+ERROR db timeout
+INFO login user=park

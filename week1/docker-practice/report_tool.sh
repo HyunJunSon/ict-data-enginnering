@@ -1,0 +1,11 @@
+#!/bin/bash
+usage(){
+	echo "사용법: $0 [summary|detail|help] [폴더]"
+}
+
+count errors() {
+	local file="$1"
+	grep -c ERROR "$file" || true
+}
+usage
+echo "app1의 ERROR:  ${count_errors logs/app1.log}건"
