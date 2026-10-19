@@ -1,6 +1,6 @@
 services:
   minio:
-    image: pgsty/minio  # 공식 minio/minio 는 Docker Hub 에서 내려받을 수 없어(2026-10 확인) 같은 MinIO 빌드를 씁니다
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z  # 4-1 의 latest 와 같은 판 — 태그만 고정
     container_name: minio
     ports:
       - "9000:9000"
@@ -8,18 +8,55 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_DOMAIN: minio
     command: ["server", "/data", "--console-address", ":9001"]
     volumes:
       - minio-data:/data
+    networks:
+      default:
+        aliases:
+          - warehouse.minio
   mc:
-    image: pgsty/mc  # 공식 minio/mc 는 Docker Hub 에서 내려받을 수 없어(2026-10 확인) 같은 MinIO 빌드를 씁니다
+    image: pgsty/mc:RELEASE.2026-09-16T00-00-00Z
     container_name: mc
     depends_on:
       - minio
     environment:
-      MC_HOST_local: http://minioadmin:minioadmin@minio:9000  # mc 의 별칭 local — 컨테이너를 다시 만들어도 남습니다
+      MC_HOST_local: http://minioadmin:minioadmin@minio:9000
     entrypoint: ["/bin/sh", "-c", "sleep infinity"]
     volumes:
       - ./data:/data
+  rest:
+    image: tabulario/iceberg-rest:1.6.0
+    container_name: iceberg-rest
+    depends_on:
+      - minio
+    ports:
+      - "8181:8181"
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_REGION: us-east-1
+      CATALOG_WAREHOUSE: s3://warehouse/
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_S3_ENDPOINT: http://minio:9000
+      CATALOG_URI: jdbc:sqlite:file:/home/iceberg/iceberg_catalog.db  # 카탈로그를 볼륨의 파일에 — 빼면 down 때 테이블 목록이 사라집니다
+    volumes:
+      - rest-catalog:/home/iceberg
+  spark-iceberg:
+    image: tabulario/spark-iceberg:3.5.5_1.8.1
+    container_name: spark-iceberg
+    depends_on:
+      - rest
+      - minio
+    ports:
+      - "8888:8888"
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_REGION: us-east-1
+    volumes:
+      - ./scripts:/home/iceberg/scripts
 volumes:
   minio-data:
+  rest-catalog:
