@@ -57,6 +57,16 @@ services:
       AWS_REGION: us-east-1
     volumes:
       - ./scripts:/home/iceberg/scripts
+  trino:
+    image: trinodb/trino:483
+    container_name: trino
+    depends_on:
+      - rest
+      - minio
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./catalog:/etc/trino/catalog
 volumes:
   minio-data:
   rest-catalog:
