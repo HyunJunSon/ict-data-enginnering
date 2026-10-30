@@ -1,0 +1,32 @@
+services:
+  spark-master:
+    image: apache/spark:3.5.3
+    container_name: spark-master
+    # --host — 마스터가 자기 주소를 IP 대신 spark://spark-master:7077 로 알립니다
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host spark-master
+    ports:
+      - "8080:8080"   # 마스터 웹 UI
+      - "7077:7077"   # 마스터 접수 포트
+  spark-worker:
+    image: apache/spark:3.5.3
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker
+      spark://spark-master:7077 --cores 2 --memory 2g
+    depends_on:
+      - spark-master
+    deploy:
+      replicas: 1
+  minio:
+    image: pgsty/minio:latest
+    container_name: spark-minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password123
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # 웹 콘솔
+    volumes:
+      - spark-minio-data:/data
+volumes:
+  spark-minio-data:

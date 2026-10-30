@@ -1,0 +1,4 @@
+services:
+  spark-master:
+    ports:
+      - "4040:4040"   # 애플리케이션 UI (셸·spark-submit 이 떠 있는 동안)
